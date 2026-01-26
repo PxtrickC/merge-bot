@@ -86,8 +86,7 @@ export async function sendMergeNotification(eventData) {
             .setColor(0x3498DB) // 改為藍色
             .setTitle('Merge Alert')
             .setDescription(description)
-            .setTimestamp()
-            .setFooter({ text: 'Tier: ⚪️=1 | 🟡=2 | 🔵=3 | 🔴=4' });
+            .setTimestamp();
 
         // 如果有圖片 URL，添加到 embed
         if (eventData.imageUrl) {
