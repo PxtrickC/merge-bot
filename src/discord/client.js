@@ -86,7 +86,7 @@ export async function sendMergeNotification(eventData) {
         const description = `${mergeLine}\n${remainLine}\n${linkLine}`;
 
         const embed = new EmbedBuilder()
-            .setColor(0x00AE86) // Merge 主題色
+            .setColor(0x3498DB) // 改為藍色
             .setTitle('Merge Alert')
             .setDescription(description)
             .setTimestamp()
