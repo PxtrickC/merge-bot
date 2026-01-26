@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: merge-nft-bot
+    runtime: node
+    plan: free
+    env: node
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_CHANNEL_ID
+        sync: false
+      - key: ETHEREUM_RPC_URL
+        sync: false
+      - key: MERGE_CONTRACT_ADDRESS
+        value: 0xc3f8a0f5841abff777d3eefa5047e8d413a1c9ab
