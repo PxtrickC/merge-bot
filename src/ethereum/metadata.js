@@ -52,12 +52,19 @@ export async function getTokenImageURL(contract, tokenId) {
         }
 
         // 從 metadata 中提取圖片 URL
-        if (!metadata.image) {
-            console.warn('   ⚠️  No image field in metadata');
+        // Merge NFT 使用 image_data 欄位（而不是 image）來存儲 SVG
+        let imageUrl = metadata.image || metadata.image_data;
+
+        if (!imageUrl) {
+            console.warn('   ⚠️  No image or image_data field in metadata');
             return null;
         }
 
-        let imageUrl = metadata.image;
+        // Discord 不支援 SVG data URIs，跳過這類圖片
+        if (imageUrl.startsWith('data:image/svg+xml')) {
+            console.log('   ℹ️  SVG data URI detected - Discord does not support embedding SVG, skipping image');
+            return null;
+        }
 
         // 處理 IPFS 圖片 URL
         if (imageUrl.startsWith('ipfs://')) {
