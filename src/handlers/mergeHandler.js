@@ -82,26 +82,36 @@ export async function handleMergeEvent(event, contract) {
         // 獲取合併後 NFT 的圖片
         const imageUrl = await getTokenImageURL(contract, tokenIdPersist);
 
-        // 處理圖片：如果是 SVG data URI，轉換為 PNG Buffer
+        // 處理圖片：如果是 SVG data URI 或 Raw SVG，轉換為 PNG Buffer
         let imageBuffer = null;
         let finalImageUrl = imageUrl;
 
-        if (imageUrl && imageUrl.startsWith('data:image/svg+xml')) {
+        // 檢查是否為 SVG (Data URI 或 Raw Hex/String)
+        const isSvgDataUri = imageUrl && imageUrl.startsWith('data:image/svg+xml');
+        const isRawSvg = imageUrl && imageUrl.trim().startsWith('<svg');
+
+        if (isSvgDataUri || isRawSvg) {
             try {
                 // 修正：動態導入 sharp，避免在沒有安裝時報錯
                 const sharp = (await import('sharp')).default;
 
                 console.log('   🔄 Converting SVG to PNG...');
 
-                // 處理 base64 編碼的 SVG
                 let svgBuffer;
-                if (imageUrl.includes('base64,')) {
-                    const base64Data = imageUrl.split('base64,')[1];
-                    svgBuffer = Buffer.from(base64Data, 'base64');
+
+                if (isSvgDataUri) {
+                    // 處理 base64 編碼的 SVG Data URI
+                    if (imageUrl.includes('base64,')) {
+                        const base64Data = imageUrl.split('base64,')[1];
+                        svgBuffer = Buffer.from(base64Data, 'base64');
+                    } else {
+                        // 處理 URL 編碼的 SVG Data URI
+                        const svgString = decodeURIComponent(imageUrl.split(',')[1]);
+                        svgBuffer = Buffer.from(svgString);
+                    }
                 } else {
-                    // 處理 URL 編碼的 SVG
-                    const svgString = decodeURIComponent(imageUrl.split(',')[1]);
-                    svgBuffer = Buffer.from(svgString);
+                    // 處理 Raw SVG string
+                    svgBuffer = Buffer.from(imageUrl);
                 }
 
                 // 轉換為 PNG
@@ -118,6 +128,11 @@ export async function handleMergeEvent(event, contract) {
                 // 轉換失敗則回退到不顯示圖片
                 finalImageUrl = null;
             }
+        } else if (imageUrl && !imageUrl.startsWith('http')) {
+            // 如果不是 HTTP URL 也不是已知的 SVG 格式，為了安全起見設為 null
+            // 避免 Discord.js 報錯 (Invalid URL)
+            console.warn('   ⚠️ Unknown image format, skipping:', imageUrl.substring(0, 50));
+            finalImageUrl = null;
         }
 
         // 準備通知資料
