@@ -34,7 +34,7 @@ export async function handleMergeEvent(event, contract) {
         const combinedMass = event.args.mass;
         const transactionHash = event.transactionHash;
 
-        console.log('\n🔔 New Merge Event Detected!');
+        console.log('\\n🔔 New Merge Event Detected!');
         console.log(`   Token Burned: #${tokenIdBurned}`);
         console.log(`   Token Persist: #${tokenIdPersist}`);
         console.log(`   Combined Mass: ${combinedMass}`);
@@ -44,29 +44,35 @@ export async function handleMergeEvent(event, contract) {
         const totalSupply = await contract.totalSupply();
         console.log(`   Total Supply: ${totalSupply}`);
 
-        // 查詢存活 Token 的 value 來獲取 class 和 mass
+        // 查詢合併前兩個 Token 的 value
         let burnedClass = 1, burnedMass = 0, persistClass = 1, persistMassBeforeMerge = 0;
 
         try {
-            // 查詢存活 token 合併後的狀態
-            const persistTokenValue = await contract.getValueOf(tokenIdPersist);
-            persistClass = decodeClass(persistTokenValue);
-            const persistMassAfterMerge = decodeMass(persistTokenValue);
+            // 獲取事件發生的區塊號
+            const eventBlockNumber = event.blockNumber;
 
-            // 從合併後的總質量計算原始質量
-            // combinedMass = persistMassBeforeMerge + burnedMass
-            // persistMassAfterMerge = combinedMass
-            persistMassBeforeMerge = Number(combinedMass) - (persistMassAfterMerge - Number(combinedMass));
+            // 查詢合併前（該交易發生前）兩個 token 的 value
+            // 使用 blockTag 來獲取該區塊之前的狀態
+            const blockBeforeMerge = eventBlockNumber - 1;
 
-            // 簡化：假設兩個 token 同一 tier（通常情況）
-            burnedClass = persistClass;
-            burnedMass = Number(combinedMass) - persistMassBeforeMerge;
+            console.log(`   Fetching pre-merge token values at block ${blockBeforeMerge}...`);
 
-            console.log(`   Burned Token: Tier ${burnedClass}, Mass ~${burnedMass}`);
-            console.log(`   Persist Token: Tier ${persistClass}, Mass before ${persistMassBeforeMerge} → after ${persistMassAfterMerge}`);
+            // 查詢被燒毀的 token 在合併前的 value
+            const burnedTokenValue = await contract.getValueOf(tokenIdBurned, { blockTag: blockBeforeMerge });
+            burnedClass = decodeClass(burnedTokenValue);
+            burnedMass = decodeMass(burnedTokenValue);
+
+            // 查詢存活的 token 在合併前的 value
+            const persistTokenValueBefore = await contract.getValueOf(tokenIdPersist, { blockTag: blockBeforeMerge });
+            persistClass = decodeClass(persistTokenValueBefore);
+            persistMassBeforeMerge = decodeMass(persistTokenValueBefore);
+
+            console.log(`   Burned Token (#${tokenIdBurned}): Tier ${burnedClass}, Mass ${burnedMass}`);
+            console.log(`   Persist Token (#${tokenIdPersist}): Tier ${persistClass}, Mass before ${persistMassBeforeMerge} → after ${Number(combinedMass)}`);
         } catch (error) {
-            console.warn('   Warning: Using estimated values for token details');
-            // 使用估算值
+            console.warn('   Warning: Could not fetch historical token values, using estimate');
+            console.warn('   Error:', error.message);
+            // 使用估算值作為fallback
             burnedClass = 1;
             persistClass = 1;
             burnedMass = Math.floor(Number(combinedMass) / 2);
