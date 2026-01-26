@@ -79,11 +79,8 @@ export async function sendMergeNotification(eventData) {
         // 第二行：剩餘數量
         const remainLine = `${eventData.totalSupply.toLocaleString()}/28,990 remain`;
 
-        // 第三行：交易連結
-        const linkLine = `link: [Etherscan](https://etherscan.io/tx/${eventData.transactionHash})`;
-
         // 組合完整描述
-        const description = `${mergeLine}\n${remainLine}\n${linkLine}`;
+        const description = `${mergeLine}\n${remainLine}`;
 
         const embed = new EmbedBuilder()
             .setColor(0x3498DB) // 改為藍色
