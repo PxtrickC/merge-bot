@@ -82,7 +82,7 @@ export async function sendMergeNotification(eventData) {
             .setDescription(mergeNotation)
             .addFields(
                 {
-                    name: '📊 當前總供應量',
+                    name: '📊 剩餘 NFT 數量',
                     value: `${eventData.totalSupply.toLocaleString()} NFTs`,
                     inline: false
                 },
