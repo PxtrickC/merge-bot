@@ -97,7 +97,17 @@ export async function sendMergeNotification(eventData) {
             embed.setImage(eventData.imageUrl);
         }
 
-        await channel.send({ embeds: [embed] });
+        const messageOptions = { embeds: [embed] };
+
+        // 如果有圖片 Buffer，作為附件發送
+        if (eventData.imageBuffer) {
+            messageOptions.files = [{
+                attachment: eventData.imageBuffer,
+                name: 'merge.png'
+            }];
+        }
+
+        await channel.send(messageOptions);
         console.log(`✅ Notification sent: ${burnedEmoji} #${eventData.tokenIdBurned} → ${persistEmoji} #${eventData.tokenIdPersist}`);
 
     } catch (error) {

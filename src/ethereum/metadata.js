@@ -60,11 +60,11 @@ export async function getTokenImageURL(contract, tokenId) {
             return null;
         }
 
-        // Discord 不支援 SVG data URIs，跳過這類圖片
-        if (imageUrl.startsWith('data:image/svg+xml')) {
-            console.log('   ℹ️  SVG data URI detected - Discord does not support embedding SVG, skipping image');
-            return null;
-        }
+        // Discord 不支援 SVG data URIs，但我們會在上層經由 sharp 轉換
+        // if (imageUrl.startsWith('data:image/svg+xml')) {
+        //     console.log('   ℹ️  SVG data URI detected - Discord does not support embedding SVG, skipping image');
+        //     return null;
+        // }
 
         // 處理 IPFS 圖片 URL
         if (imageUrl.startsWith('ipfs://')) {

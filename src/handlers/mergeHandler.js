@@ -82,6 +82,44 @@ export async function handleMergeEvent(event, contract) {
         // 獲取合併後 NFT 的圖片
         const imageUrl = await getTokenImageURL(contract, tokenIdPersist);
 
+        // 處理圖片：如果是 SVG data URI，轉換為 PNG Buffer
+        let imageBuffer = null;
+        let finalImageUrl = imageUrl;
+
+        if (imageUrl && imageUrl.startsWith('data:image/svg+xml')) {
+            try {
+                // 修正：動態導入 sharp，避免在沒有安裝時報錯
+                const sharp = (await import('sharp')).default;
+
+                console.log('   🔄 Converting SVG to PNG...');
+
+                // 處理 base64 編碼的 SVG
+                let svgBuffer;
+                if (imageUrl.includes('base64,')) {
+                    const base64Data = imageUrl.split('base64,')[1];
+                    svgBuffer = Buffer.from(base64Data, 'base64');
+                } else {
+                    // 處理 URL 編碼的 SVG
+                    const svgString = decodeURIComponent(imageUrl.split(',')[1]);
+                    svgBuffer = Buffer.from(svgString);
+                }
+
+                // 轉換為 PNG
+                imageBuffer = await sharp(svgBuffer)
+                    .png()
+                    .toBuffer();
+
+                console.log('   ✅ SVG converted to PNG buffer');
+                // 使用 attachment URL schema
+                finalImageUrl = 'attachment://merge.png';
+
+            } catch (error) {
+                console.error('   ❌ Error converting SVG to PNG:', error.message);
+                // 轉換失敗則回退到不顯示圖片
+                finalImageUrl = null;
+            }
+        }
+
         // 準備通知資料
         const eventData = {
             tokenIdBurned: tokenIdBurned.toString(),
@@ -95,7 +133,8 @@ export async function handleMergeEvent(event, contract) {
             transactionHash: transactionHash,
             contractAddress: MERGE_CONTRACT_ADDRESS,
             timestamp: new Date().toISOString(),
-            imageUrl: imageUrl // 添加圖片 URL
+            imageUrl: finalImageUrl,
+            imageBuffer: imageBuffer // 傳遞 Buffer 給 Discord client
         };
 
         // 發送 Discord 通知
