@@ -1,5 +1,5 @@
 services:
-  - type: web
+  - type: pserv
     name: merge-nft-bot
     runtime: node
     plan: free
