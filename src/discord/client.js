@@ -77,7 +77,7 @@ export async function sendMergeNotification(eventData) {
         const mergeLine = `${burnedEmoji} (${burnedMassFormatted}) [#${eventData.tokenIdBurned}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdBurned}) → ${persistEmoji} (${persistMassBeforeFormatted}) [#${eventData.tokenIdPersist}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdPersist}) = ${persistEmoji} (${combinedMassFormatted}) [#${eventData.tokenIdPersist}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdPersist})`;
 
         // 第二行：剩餘數量
-        const remainLine = `${eventData.totalSupply.toLocaleString()}/28990 remain`;
+        const remainLine = `${eventData.totalSupply.toLocaleString()}/28,990 remain`;
 
         // 第三行：交易連結
         const linkLine = `link: [Etherscan](https://etherscan.io/tx/${eventData.transactionHash})`;
@@ -87,7 +87,7 @@ export async function sendMergeNotification(eventData) {
 
         const embed = new EmbedBuilder()
             .setColor(0x00AE86) // Merge 主題色
-            .setTitle('🔄 Merge NFT 合併事件')
+            .setTitle('Merge Alert')
             .setDescription(description)
             .setTimestamp()
             .setFooter({ text: 'Tier: ⚪️=1 | 🟡=2 | 🔵=3 | 🔴=4' });
