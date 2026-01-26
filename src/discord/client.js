@@ -33,6 +33,21 @@ export async function initializeDiscordClient(token, channelId) {
 }
 
 /**
+ * 將 tier 轉換為顏色圓點 emoji
+ * @param {number} tier - NFT tier (1-4)
+ * @returns {string} Colored emoji
+ */
+function getTierEmoji(tier) {
+    switch (tier) {
+        case 1: return '⚪️'; // 白色
+        case 2: return '🟡'; // 黃色
+        case 3: return '🔵'; // 藍色
+        case 4: return '🔴'; // 紅色
+        default: return '⚪️';
+    }
+}
+
+/**
  * 發送 Merge 事件通知到 Discord
  * @param {Object} eventData - Merge event data
  */
@@ -50,26 +65,22 @@ export async function sendMergeNotification(eventData) {
             return;
         }
 
+        // 生成緊湊格式的合併表示
+        // 格式: ⚪️ (1234) #19797 → ⚪️ (5678) #28686 = ⚪️ (6912) #28686
+        const burnedEmoji = getTierEmoji(eventData.burnedTier);
+        const persistEmoji = getTierEmoji(eventData.persistTier);
+
+        const burnedMassFormatted = eventData.burnedMass.toLocaleString();
+        const persistMassBeforeFormatted = eventData.persistMassBeforeMerge.toLocaleString();
+        const combinedMassFormatted = eventData.combinedMass.toLocaleString();
+
+        const mergeNotation = `${burnedEmoji} (${burnedMassFormatted}) [#${eventData.tokenIdBurned}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdBurned}) → ${persistEmoji} (${persistMassBeforeFormatted}) [#${eventData.tokenIdPersist}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdPersist}) = ${persistEmoji} (${combinedMassFormatted}) [#${eventData.tokenIdPersist}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdPersist})`;
+
         const embed = new EmbedBuilder()
             .setColor(0x00AE86) // Merge 主題色
             .setTitle('🔄 Merge NFT 合併事件')
-            .setDescription('檢測到新的 NFT 合併！')
+            .setDescription(mergeNotation)
             .addFields(
-                {
-                    name: '💀 被銷毀的 Token',
-                    value: `[#${eventData.tokenIdBurned}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdBurned})`,
-                    inline: true
-                },
-                {
-                    name: '✨ 存活的 Token',
-                    value: `[#${eventData.tokenIdPersist}](https://etherscan.io/nft/${eventData.contractAddress}/${eventData.tokenIdPersist})`,
-                    inline: true
-                },
-                {
-                    name: '⚖️ 合併後質量',
-                    value: eventData.mass.toLocaleString(),
-                    inline: true
-                },
                 {
                     name: '📊 當前總供應量',
                     value: `${eventData.totalSupply.toLocaleString()} NFTs`,
@@ -82,10 +93,10 @@ export async function sendMergeNotification(eventData) {
                 }
             )
             .setTimestamp()
-            .setFooter({ text: 'Merge NFT Monitor' });
+            .setFooter({ text: 'Merge NFT Monitor • Tier: ⚪️=1 | 🟡=2 | 🔵=3 | 🔴=4' });
 
         await channel.send({ embeds: [embed] });
-        console.log(`✅ Notification sent for merge: Token #${eventData.tokenIdBurned} → #${eventData.tokenIdPersist}`);
+        console.log(`✅ Notification sent: ${burnedEmoji} #${eventData.tokenIdBurned} → ${persistEmoji} #${eventData.tokenIdPersist}`);
 
     } catch (error) {
         console.error('❌ Error sending Discord notification:', error);
