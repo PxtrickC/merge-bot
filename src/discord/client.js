@@ -92,6 +92,11 @@ export async function sendMergeNotification(eventData) {
             .setTimestamp()
             .setFooter({ text: 'Tier: ⚪️=1 | 🟡=2 | 🔵=3 | 🔴=4' });
 
+        // 如果有圖片 URL，添加到 embed
+        if (eventData.imageUrl) {
+            embed.setImage(eventData.imageUrl);
+        }
+
         await channel.send({ embeds: [embed] });
         console.log(`✅ Notification sent: ${burnedEmoji} #${eventData.tokenIdBurned} → ${persistEmoji} #${eventData.tokenIdPersist}`);
 

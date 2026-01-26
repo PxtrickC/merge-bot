@@ -1,5 +1,6 @@
 import { sendMergeNotification } from '../discord/client.js';
 import { MERGE_CONTRACT_ADDRESS } from '../ethereum/contract.js';
+import { getTokenImageURL } from '../ethereum/metadata.js';
 
 /**
  * 從 value 中解碼 class (tier)
@@ -72,6 +73,9 @@ export async function handleMergeEvent(event, contract) {
             persistMassBeforeMerge = Number(combinedMass) - burnedMass;
         }
 
+        // 獲取合併後 NFT 的圖片
+        const imageUrl = await getTokenImageURL(contract, tokenIdPersist);
+
         // 準備通知資料
         const eventData = {
             tokenIdBurned: tokenIdBurned.toString(),
@@ -84,7 +88,8 @@ export async function handleMergeEvent(event, contract) {
             totalSupply: Number(totalSupply),
             transactionHash: transactionHash,
             contractAddress: MERGE_CONTRACT_ADDRESS,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            imageUrl: imageUrl // 添加圖片 URL
         };
 
         // 發送 Discord 通知
