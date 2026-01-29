@@ -32,13 +32,17 @@ export async function handleMergeEvent(event, contract) {
         const tokenIdBurned = event.args.tokenIdBurned;
         const tokenIdPersist = event.args.tokenIdPersist;
         const combinedMass = event.args.mass;
-        const transactionHash = event.transactionHash;
+
+        // ethers.js v6: ContractEventPayload 結構中，log 資訊在 event.log 中
+        const transactionHash = event.log?.transactionHash || event.transactionHash;
+        const eventBlockNumber = event.log?.blockNumber || event.blockNumber;
 
         console.log('\\n🔔 New Merge Event Detected!');
         console.log(`   Token Burned: #${tokenIdBurned}`);
         console.log(`   Token Persist: #${tokenIdPersist}`);
         console.log(`   Combined Mass: ${combinedMass}`);
         console.log(`   TX Hash: ${transactionHash}`);
+        console.log(`   Block Number: ${eventBlockNumber}`);
 
         // 查詢當前總供應量
         const totalSupply = await contract.totalSupply();
@@ -48,8 +52,10 @@ export async function handleMergeEvent(event, contract) {
         let burnedClass = 1, burnedMass = 0, persistClass = 1, persistMassBeforeMerge = 0;
 
         try {
-            // 獲取事件發生的區塊號
-            const eventBlockNumber = event.blockNumber;
+            // 確保 blockNumber 是有效數字
+            if (!eventBlockNumber || isNaN(eventBlockNumber)) {
+                throw new Error(`Invalid block number: ${eventBlockNumber}`);
+            }
 
             // 查詢合併前（該交易發生前）兩個 token 的 value
             // 使用 blockTag 來獲取該區塊之前的狀態
@@ -70,13 +76,38 @@ export async function handleMergeEvent(event, contract) {
             console.log(`   Burned Token (#${tokenIdBurned}): Tier ${burnedClass}, Mass ${burnedMass}`);
             console.log(`   Persist Token (#${tokenIdPersist}): Tier ${persistClass}, Mass before ${persistMassBeforeMerge} → after ${Number(combinedMass)}`);
         } catch (error) {
-            console.warn('   Warning: Could not fetch historical token values, using estimate');
+            console.warn('   Warning: Could not fetch historical token values at block -1');
             console.warn('   Error:', error.message);
-            // 使用估算值作為fallback
-            burnedClass = 1;
-            persistClass = 1;
-            burnedMass = Math.floor(Number(combinedMass) / 2);
-            persistMassBeforeMerge = Number(combinedMass) - burnedMass;
+
+            // 改進的 fallback：嘗試從當前狀態反推
+            try {
+                console.log('   Attempting fallback: fetching current persist token value...');
+
+                // 查詢 persist token 在合併後的當前值（就是 combinedMass）
+                // 這個值在事件中已經有了，但我們需要 tier
+                const persistTokenValueAfter = await contract.getValueOf(tokenIdPersist);
+                persistClass = decodeClass(persistTokenValueAfter);
+
+                // persist token 合併後的 mass 就是 combinedMass
+                // 但我們不知道合併前的確切分配
+                // 最佳猜測：如果 MassUpdate 事件只有 combined mass
+                // 我們無法準確知道各自的 mass，標記為未知
+                console.warn('   ⚠️ Cannot determine exact pre-merge mass distribution');
+                console.warn('   Will display with "?" to indicate unknown values');
+
+                // 使用 -1 作為標記，表示值未知
+                burnedClass = persistClass; // 假設同 tier（同 class 才能 merge）
+                burnedMass = -1; // 標記為未知
+                persistMassBeforeMerge = -1; // 標記為未知
+
+            } catch (fallbackError) {
+                console.error('   Fallback also failed:', fallbackError.message);
+                // 最後的 fallback：全部標記為未知
+                burnedClass = 1;
+                persistClass = 1;
+                burnedMass = -1;
+                persistMassBeforeMerge = -1;
+            }
         }
 
         // 獲取合併後 NFT 的圖片
